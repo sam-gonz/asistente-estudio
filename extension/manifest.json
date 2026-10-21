@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Asistente de Estudio - Capturas",
+  "version": "1.8",
+  "description": "Captura el área visible de la pestaña con Alt+S y envíala al asistente local.",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "capture-screen": {
+      "suggested_key": {
+        "default": "Alt+S"
+      },
+      "description": "Capturar la pestaña y enviarla al asistente"
+    }
+  }
+}

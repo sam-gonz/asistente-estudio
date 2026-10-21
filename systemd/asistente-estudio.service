@@ -1,0 +1,17 @@
+[Unit]
+Description=Asistente de Estudio en Segundo Plano
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/bin/asistente-estudio-daemon.py
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=5
+Environment=DISPLAY=:0
+Environment=PATH=%h/.gemini/antigravity-cli/bin:%h/.local/bin:/usr/local/bin:/usr/bin
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

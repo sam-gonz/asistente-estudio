@@ -1,0 +1,28 @@
+# Entorno y archivos generados
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+*.pid
+daemon.pid
+
+# Archivos de estado y datos locales del usuario
+historial.txt
+*.enabled
+*.mode
+*.muted
+*.neural
+
+# Archivos temporales de audio e imagen
+*.mp3
+*.wav
+*.jpg
+*.jpeg
+*.png
+/tmp/
+
+# Dependencias y herramientas
+node_modules/
+graphify-out/
+.vscode/
+.idea/

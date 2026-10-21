@@ -1,0 +1,348 @@
+#!/bin/bash
+# Asistente de Estudio - Control Script
+
+DATA_DIR="$HOME/.local/share/asistente-estudio"
+LOG_FILE="$DATA_DIR/historial.txt"
+SERVICE_NAME="asistente-estudio.service"
+
+mkdir -p "$DATA_DIR"
+
+is_active() {
+    systemctl --user is-active --quiet "$SERVICE_NAME"
+}
+
+start_service() {
+    if is_active; then
+        echo "El Asistente de Estudio ya está ACTIVO."
+        notify-send -a "Asistente de Estudio" -i dialog-information -t 2500 "Asistente de Estudio" "Ya está activo en segundo plano." 2>/dev/null || true
+        return 0
+    fi
+
+    systemctl --user start "$SERVICE_NAME"
+    sleep 0.5
+
+    if is_active; then
+        echo "Asistente de Estudio activado correctamente."
+        notify-send -a "Asistente de Estudio" -i dialog-information -t 3500 "Asistente de Estudio" "🟢 Activado. Copia una pregunta (Ctrl+C) para recibir la respuesta." 2>/dev/null || true
+    else
+        echo "Error al iniciar el Asistente de Estudio. Revisa: journalctl --user -u asistente-estudio -n 20"
+        notify-send -a "Asistente de Estudio" -i dialog-error -t 4000 "Asistente de Estudio" "❌ Error al iniciar el servicio." 2>/dev/null || true
+        return 1
+    fi
+}
+
+stop_service() {
+    if ! is_active; then
+        echo "El Asistente de Estudio ya está INACTIVO."
+        python3 -c "
+import os, re
+for p in [os.path.expanduser('~/.config/gtk-3.0/gtk.css'), os.path.expanduser('~/.config/gtk-4.0/gtk.css')]:
+    if os.path.exists(p):
+        with open(p, 'r') as f: c = f.read()
+        c = re.sub(r'/\* ASISTENTE_ESTUDIO_STEALTH \*/[\s\S]*?\}', '', c).strip()
+        if c: 
+            with open(p, 'w') as f: f.write(c + '\n')
+        else:
+            try: os.remove(p)
+            except: pass
+" 2>/dev/null || true
+        return 0
+    fi
+
+    systemctl --user stop "$SERVICE_NAME"
+    python3 -c "
+import os, re
+for p in [os.path.expanduser('~/.config/gtk-3.0/gtk.css'), os.path.expanduser('~/.config/gtk-4.0/gtk.css')]:
+    if os.path.exists(p):
+        with open(p, 'r') as f: c = f.read()
+        c = re.sub(r'/\* ASISTENTE_ESTUDIO_STEALTH \*/[\s\S]*?\}', '', c).strip()
+        if c: 
+            with open(p, 'w') as f: f.write(c + '\n')
+        else:
+            try: os.remove(p)
+            except: pass
+" 2>/dev/null || true
+    echo "Asistente de Estudio detenido (selección normal restaurada)."
+    notify-send -a "Asistente de Estudio" -i dialog-information -t 3000 "Asistente de Estudio" "🔴 Desactivado (selección restaurada)." 2>/dev/null || true
+}
+
+toggle_service() {
+    if is_active; then
+        stop_service
+    else
+        start_service
+    fi
+}
+
+status_service() {
+    if is_active; then
+        PID=$(systemctl --user show --property MainPID --value "$SERVICE_NAME")
+        echo "● Estado: ACTIVO (PID: $PID)"
+        echo "  Modelo IA: gemini-3.8-flash-low (effort: low)"
+        echo "  Historial: $LOG_FILE"
+        if [ -f "$LOG_FILE" ]; then
+            COUNT=$(grep -c "^=== " "$LOG_FILE" 2>/dev/null)
+            COUNT=${COUNT:-0}
+            echo "  Consultas registradas: $COUNT"
+        else
+            echo "  Consultas registradas: 0"
+        fi
+        if [ -f "$DATA_DIR/voice.enabled" ]; then
+            VNAME=$(cat "$DATA_DIR/voice.neural" 2>/dev/null || echo "es-MX-JorgeNeural")
+            echo "  Modo Voz (TTS): ACTIVADO (Voz: $VNAME)"
+        else
+            echo "  Modo Voz (TTS): DESACTIVADO"
+        fi
+        if [ -f "$DATA_DIR/notifications.muted" ]; then
+            echo "  Notificaciones en pantalla: OCULTADAS (Modo discreto: solo voz)"
+        else
+            echo "  Notificaciones en pantalla: ACTIVADAS"
+        fi
+        echo ""
+        echo "  Atajos disponibles:"
+        echo "    - Copiar (Ctrl+C): Resuelve la pregunta seleccionada (selección invisible)"
+        echo "    - Alt+S: Captura silenciosa de pantalla completa (en navegador)"
+        echo "    - Alt+R: Repetir última respuesta al oído"
+        echo "    - Alt+X o Ctrl+Alt+P: Botón de pánico inmediato (limpieza total)"
+    else
+        echo "○ Estado: INACTIVO"
+        echo "  Para iniciar: asistente-estudio start"
+    fi
+}
+
+panic_action() {
+    echo "🚨 ¡ACTIVANDO MODO PÁNICO!"
+    pkill -9 pw-play 2>/dev/null || true
+    pkill -9 espeak-ng 2>/dev/null || true
+    pkill -9 -f gemini-3.8-flash-low 2>/dev/null || true
+    pkill -9 -f "agy -p" 2>/dev/null || true
+
+    curl -s -X POST http://127.0.0.1:49211/panic -m 0.5 2>/dev/null || true
+
+    python3 -c "
+import subprocess
+for i in range(1, 151):
+    subprocess.Popen(['gdbus', 'call', '--session', '--dest', 'org.freedesktop.Notifications', '--object-path', '/org/freedesktop/Notifications', '--method', 'org.freedesktop.Notifications.CloseNotification', str(i)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+" 2>/dev/null || true
+
+    wl-copy --clear 2>/dev/null || true
+    systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
+
+    python3 -c "
+import os, re
+for p in [os.path.expanduser('~/.config/gtk-3.0/gtk.css'), os.path.expanduser('~/.config/gtk-4.0/gtk.css')]:
+    if os.path.exists(p):
+        with open(p, 'r') as f: c = f.read()
+        c = re.sub(r'/\* ASISTENTE_ESTUDIO_STEALTH \*/[\s\S]*?\}', '', c).strip()
+        if c: 
+            with open(p, 'w') as f: f.write(c + '\n')
+        else:
+            try: os.remove(p)
+            except: pass
+" 2>/dev/null || true
+
+    rm -f /tmp/asistente_screen.jpg /tmp/asistente_voice.wav /tmp/asistente_voice.mp3 /tmp/test_voice.wav 2>/dev/null || true
+    echo "✅ Modo pánico completado: servicio detenido, audio y notificaciones eliminadas, portapapeles limpio."
+}
+
+voice_control() {
+    case "$1" in
+        on)
+            touch "$DATA_DIR/voice.enabled"
+            echo "🔊 Modo Voz (voz neuronal humana) ACTIVADO."
+            ;;
+        off)
+            rm -f "$DATA_DIR/voice.enabled"
+            echo "🔇 Modo Voz DESACTIVADO."
+            ;;
+        toggle)
+            if [ -f "$DATA_DIR/voice.enabled" ]; then
+                rm -f "$DATA_DIR/voice.enabled"
+                echo "🔇 Modo Voz DESACTIVADO."
+            else
+                touch "$DATA_DIR/voice.enabled"
+                echo "🔊 Modo Voz (voz neuronal humana) ACTIVADO."
+            fi
+            ;;
+        set)
+            case "$2" in
+                jorge)     VOICE="es-MX-JorgeNeural"; NAME="Jorge (Hombre, México - Locutor neutro)" ;;
+                dalia)     VOICE="es-MX-DaliaNeural"; NAME="Dalia (Mujer, México - Suave y natural)" ;;
+                roberto)   VOICE="es-PA-RobertoNeural"; NAME="Roberto (Hombre, Panamá)" ;;
+                margarita) VOICE="es-PA-MargaritaNeural"; NAME="Margarita (Mujer, Panamá)" ;;
+                alvaro)    VOICE="es-ES-AlvaroNeural"; NAME="Álvaro (Hombre, España)" ;;
+                elvira)    VOICE="es-ES-ElviraNeural"; NAME="Elvira (Mujer, España)" ;;
+                *)
+                    echo "Voces disponibles: jorge, dalia, roberto, margarita, alvaro, elvira"
+                    return 1
+                    ;;
+            esac
+            echo "$VOICE" > "$DATA_DIR/voice.neural"
+            touch "$DATA_DIR/voice.enabled"
+            echo "🗣️ Voz configurada: $NAME"
+            ;;
+        list)
+            echo "Voces humanas neuronales disponibles:"
+            echo "  - jorge     : Hombre, México (locutor neutro, ultra natural) [Recomendada]"
+            echo "  - dalia     : Mujer, México (tono cálido, fluido y profesional)"
+            echo "  - roberto   : Hombre, Panamá (acento panameño)"
+            echo "  - margarita : Mujer, Panamá (acento panameño)"
+            echo "  - alvaro    : Hombre, España"
+            echo "  - elvira    : Mujer, España"
+            echo ""
+            echo "Para cambiar: asistente-estudio voice set <nombre>"
+            ;;
+        test)
+            VNAME=$(cat "$DATA_DIR/voice.neural" 2>/dev/null || echo "es-MX-JorgeNeural")
+            echo "Generando prueba con voz neuronal humana ($VNAME)..."
+            python3 -c "
+import asyncio, edge_tts
+async def test():
+    comm = edge_tts.Communicate('Opción B: los requerimientos no funcionales del sistema.', '$VNAME', rate='+8%')
+    await comm.save('/tmp/test_voice.mp3')
+asyncio.run(test())
+" 2>/dev/null || true
+            if [ -f /tmp/test_voice.mp3 ]; then
+                pw-play /tmp/test_voice.mp3
+            else
+                espeak-ng -v es-419 -s 155 -a 100 -p 50 "Opción B: respuesta de prueba." -w /tmp/asistente_voice.wav
+                pw-play /tmp/asistente_voice.wav
+            fi
+            echo "Prueba de audio finalizada."
+            ;;
+        status|*)
+            CUR_VOICE=$(cat "$DATA_DIR/voice.neural" 2>/dev/null || echo "es-MX-JorgeNeural")
+            if [ -f "$DATA_DIR/voice.enabled" ]; then
+                echo "Modo Voz: ACTIVADO"
+                echo "Voz Neuronal: $CUR_VOICE"
+            else
+                echo "Modo Voz: DESACTIVADO"
+            fi
+            echo ""
+            echo "Uso: asistente-estudio voice {on|off|toggle|set <nombre>|list|test}"
+            ;;
+    esac
+}
+
+show_logs() {
+    if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then
+        echo "No hay historial de consultas aún."
+        return 0
+    fi
+    if [ "$1" = "-f" ] || [ "$1" = "--follow" ]; then
+        tail -n 40 -f "$LOG_FILE"
+    else
+        tail -n 50 "$LOG_FILE"
+    fi
+}
+
+show_last() {
+    if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then
+        echo "No hay consultas registradas."
+        return 0
+    fi
+    awk -v RS="--------------------------------------------------\n\n" 'END {print $0}' "$LOG_FILE"
+}
+
+clear_logs() {
+    > "$LOG_FILE"
+    echo "Historial de consultas borrado."
+}
+
+notif_control() {
+    case "$1" in
+        off|hide|mute)
+            touch "$DATA_DIR/notifications.muted"
+            echo "🔕 Notificaciones en pantalla OCULTADAS (solo hablará el TTS)."
+            ;;
+        on|show)
+            rm -f "$DATA_DIR/notifications.muted"
+            echo "🔔 Notificaciones en pantalla ACTIVADAS."
+            ;;
+        toggle)
+            if [ -f "$DATA_DIR/notifications.muted" ]; then
+                rm -f "$DATA_DIR/notifications.muted"
+                echo "🔔 Notificaciones en pantalla ACTIVADAS."
+            else
+                touch "$DATA_DIR/notifications.muted"
+                echo "🔕 Notificaciones en pantalla OCULTADAS (solo hablará el TTS)."
+            fi
+            ;;
+        status|*)
+            if [ -f "$DATA_DIR/notifications.muted" ]; then
+                echo "Notificaciones en pantalla: OCULTADAS (Modo discreto: solo voz)"
+            else
+                echo "Notificaciones en pantalla: ACTIVADAS"
+            fi
+            echo "Uso: asistente-estudio notif {on|off|toggle}"
+            ;;
+    esac
+}
+
+case "$1" in
+    start)
+        start_service
+        ;;
+    stop)
+        stop_service
+        ;;
+    restart)
+        stop_service
+        sleep 1
+        start_service
+        ;;
+    toggle)
+        toggle_service
+        ;;
+    status)
+        status_service
+        ;;
+    panic)
+        panic_action
+        ;;
+    voice)
+        voice_control "$2" "$3"
+        ;;
+    notif)
+        notif_control "$2"
+        ;;
+    repeat)
+        curl -s -X POST http://127.0.0.1:49211/repeat-voice -m 0.5 >/dev/null 2>&1 || {
+            for f in /tmp/asistente_voice.mp3 /tmp/asistente_voice.wav; do
+                if [ -f "$f" ]; then
+                    pw-play "$f"
+                    exit 0
+                fi
+            done
+            echo "No hay audio de respuesta reciente para repetir."
+        }
+        ;;
+    last)
+        show_last
+        ;;
+    logs)
+        show_logs "$2"
+        ;;
+    clear-logs)
+        clear_logs
+        ;;
+    *)
+        echo "Uso: asistente-estudio {start|stop|restart|toggle|status|panic|voice|notif|repeat|last|logs|clear-logs}"
+        echo ""
+        echo "Comandos:"
+        echo "  start         Inicia el asistente en segundo plano"
+        echo "  stop          Detiene el asistente"
+        echo "  restart       Reinicia el servicio"
+        echo "  toggle        Alterna entre activado/desactivado"
+        echo "  status        Verifica estado, modo voz, notificaciones y atajos"
+        echo "  panic         🚨 Botón de pánico (cierra audio, notificaciones, portapapeles y se apaga)"
+        echo "  voice [arg]   Control de voz al oído: on | off | toggle | set <nombre> | list | test"
+        echo "  notif [arg]   Control de notificaciones en pantalla: on | off | toggle"
+        echo "  repeat        🔁 Repite la última respuesta al oído"
+        echo "  last          Muestra la última pregunta y respuesta completa"
+        echo "  logs [-f]     Muestra las últimas consultas y respuestas del historial"
+        echo "  clear-logs    Limpia el archivo de historial"
+        exit 1
+        ;;
+esac
+

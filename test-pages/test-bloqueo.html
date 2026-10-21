@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab de Pruebas Anti-Bloqueo & Sigilo</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 26, 43, 0.75);
+      --card-border: rgba(56, 189, 248, 0.12);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      background: radial-gradient(circle at 50% 0%, #172554 0%, var(--bg) 65%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+    header {
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card-border);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 2.2rem;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffffff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    /* TELEMETRÍA DE FOCO / ESTADO EN TIEMPO REAL */
+    .telemetry-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .telemetry-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .telemetry-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .telemetry-value {
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    .status-dot.red {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+
+    /* GRID DE PRUEBAS */
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .tag-danger { background: var(--danger-bg); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .tag-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .test-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .code-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* ZONA DE COMPROBACIÓN DE PORTAPAPELES */
+    .clipboard-tester {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+
+    .clipboard-tester textarea {
+      width: 100%;
+      height: 90px;
+      background: #0b1120;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-top: 8px;
+      outline: none;
+    }
+    .clipboard-tester textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* TERMINAL LOG */
+    .terminal-card {
+      background: #050811;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+    }
+
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    .terminal-logs {
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+    }
+    .log-time { color: #64748b; }
+    .log-tag { font-weight: 700; }
+    .log-tag.neutralized { color: var(--success); }
+    .log-tag.blocked { color: var(--danger); }
+    .log-tag.info { color: var(--accent); }
+    .log-msg { color: #e2e8f0; }
+
+    /* BOTONES */
+    .btn {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .alert-popup {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #dc2626;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: none;
+      z-index: 99999;
+      animation: slideUp 0.2s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* BLACKOUT SHIELD ANTI-CAPTURA */
+    .blackout-shield {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 9999999;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      color: #ffffff;
+    }
+    .blackout-shield.active {
+      display: flex;
+      animation: pulseAlert 0.35s ease-in-out infinite alternate;
+    }
+    @keyframes pulseAlert {
+      from { background: #050508; }
+      to { background: #1a0505; }
+    }
+    .blackout-box {
+      background: rgba(220, 38, 38, 0.15);
+      border: 2px solid #ef4444;
+      border-radius: 16px;
+      padding: 36px 44px;
+      max-width: 620px;
+      box-shadow: 0 0 60px rgba(239, 68, 68, 0.45);
+    }
+    .blackout-icon { font-size: 52px; margin-bottom: 14px; }
+    .blackout-box h2 {
+      margin: 0 0 12px;
+      font-size: 23px;
+      color: #f87171;
+      letter-spacing: -0.02em;
+    }
+    .blackout-box p {
+      margin: 0 0 10px;
+      color: #f1f5f9;
+      font-size: 15px;
+    }
+    .blackout-sub {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* VELO ANTI-RECORTES (PÉRDIDA DE FOCO) */
+    body.blur-shield-active .container {
+      filter: blur(28px);
+      transition: filter 0.08s ease;
+      user-select: none;
+      pointer-events: none;
+    }
+    .focus-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 13, 22, 0.94);
+      z-index: 888888;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      color: #f1f5f9;
+      text-align: center;
+      padding: 24px;
+      cursor: pointer;
+    }
+    body.blur-shield-active .focus-overlay {
+      display: flex;
+    }
+
+    @media print {
+      body { display: none !important; }
+    }
+  </style>
+</head>
+<body onselectstart="handleBodyTrap(event, 'selectstart')" oncopy="handleBodyTrap(event, 'copy')" oncontextmenu="handleBodyTrap(event, 'contextmenu')">
+
+  <!-- BLACKOUT SHIELD PARA CEGAR CAPTURAS POR ATAJO -->
+  <div class="blackout-shield" id="blackoutShield">
+    <div class="blackout-box">
+      <div class="blackout-icon">🚨</div>
+      <h2>CAPTURA DE PANTALLA DETECTADA Y BLOQUEADA</h2>
+      <p>El sistema de seguridad anti-copia ha neutralizado el intento de captura.</p>
+      <div id="blackoutReason" style="font-size: 13px; color: #fca5a5; margin-bottom: 10px; font-family: monospace;">Atajo interceptado</div>
+      <span class="blackout-sub">La pantalla se oscurece inmediatamente para invalidar la imagen capturada.</span>
+    </div>
+  </div>
+
+  <!-- VELO PARA BLOQUEAR HERRAMIENTAS EXTERNAS DE RECORTE (BLUR) -->
+  <div class="focus-overlay" id="focusOverlay" onclick="document.body.classList.remove('blur-shield-active')">
+    <div style="font-size: 48px;">🛡️</div>
+    <h2 style="margin: 0; color: #fbbf24; font-size: 22px;">VENTANA FUERA DE FOCO — CONTENIDO PROTEGIDO</h2>
+    <p style="margin: 0; max-width: 480px; font-size: 14px; color: #94a3b8;">
+      Se detectó que el foco salió del examen (posible herramienta de captura externa como Flameshot o recortes del SO). Vuelve a enfocar esta ventana para restaurar la vista.
+    </p>
+  </div>
+
+  <div class="alert-popup" id="alertPopup">⚠️ Trampa activada: La página intentó bloquear la acción.</div>
+
+  <div class="container">
+    <header>
+      <div class="badge-pill">
+        <span>🛡️ Moodle & Canvas Hostile Simulator v2.0</span>
+      </div>
+      <h1>Laboratorio de Verificación Anti-Bloqueo</h1>
+      <p class="subtitle">Esta página contiene todos los mecanismos modernos y agresivos usados para impedir la selección y copiado de exámenes.</p>
+    </header>
+
+    <!-- TELEMETRÍA DE FOCO Y ESTADO -->
+    <div class="telemetry-bar">
+      <div class="telemetry-card">
+        <span class="telemetry-label">Auditoría de Foco (Moodle Spy)</span>
+        <span class="telemetry-value" id="valFocus">
+          <span class="status-dot" id="dotFocus"></span>
+          <span id="textFocus">document.hasFocus() = true</span>
+        </span>
+      </div>
+
+      <div class="telemetry-card">
+        <span class="telemetry-label">Estado de Visibilidad (Tabs)</span>
+        <span class="telemetry-value" id="valVisibility">
+          <span class="status-dot" id="dotVisibility"></span>
+          <span id="textVisibility">visibilityState = visible</span>
+        </span>
+      </div>
+
+      <div class="telemetry-card">
+        <span class="telemetry-label">Trampas Neutralizadas Hoy</span>
+        <span class="telemetry-value" id="valNeutralized" style="color: var(--success);">0 intentos</span>
+      </div>
+
+      <div class="telemetry-card">
+        <span class="telemetry-label">Capturas Interceptadas</span>
+        <span class="telemetry-value" id="valScreenshots" style="color: var(--danger);">
+          <span class="status-dot red" id="dotScreenshots"></span>
+          <span id="countScreenshots">0 bloqueadas</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- PRUEBAS HOSTILES -->
+    <div class="test-grid">
+
+      <!-- TEST 1: INLINE CSS IMPORTANT -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1. Bloqueo Inline con <code>!important</code></span>
+          <span class="tag tag-danger">CSS Directo</span>
+        </div>
+        <div class="test-box" id="test1" style="user-select: none !important; -webkit-user-select: none !important;">
+          <b>Pregunta 1:</b> ¿Cuál es la principal ventaja de desacoplar servicios en una arquitectura orientada a microservicios mediante colas de mensajería asíncronas?
+        </div>
+        <div class="hint">
+          <b>Prueba:</b> Intenta seleccionar el texto arrastrando el ratón.<br>
+          <span style="color:#38bdf8;">Con extensión:</span> El texto se selecciona con normalidad (y en modo sigiloso, sin resaltado azul).
+        </div>
+      </div>
+
+      <!-- TEST 2: VACIADO EN TIEMPO REAL -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2. Vaciado Activo de Selección</span>
+          <span class="tag tag-danger">selectionchange wipe</span>
+        </div>
+        <div class="test-box" id="test2">
+          <b>Pregunta 2:</b> En el algoritmo Raft, ¿cómo se resuelven los conflictos de liderazgo cuando dos nodos inician una elección exactamente en el mismo instante?
+        </div>
+        <div class="hint">
+          <b>Mecanismo:</b> La página escucha <code>selectionchange</code> y ejecuta <code>window.getSelection().removeAllRanges()</code>.<br>
+          <span style="color:#38bdf8;">Con extensión:</span> La selección permanece intacta.
+        </div>
+      </div>
+
+      <!-- TEST 3: BLOQUEO DE TECLAS CTRL+C -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">3. Bloqueador de Teclado (Ctrl+C / Ctrl+A)</span>
+          <span class="tag tag-danger">keydown capture</span>
+        </div>
+        <div class="test-box" id="test3">
+          <b>Pregunta 3:</b> Explica la diferencia entre aislamiento Snapshot y Serializable en el estándar de transacciones ACID en PostgreSQL.
+        </div>
+        <div class="hint">
+          <b>Prueba:</b> Sombrea este texto y presiona <span class="code-pill">Ctrl + C</span>.<br>
+          <span style="color:#38bdf8;">Con extensión:</span> El script de la página nunca intercepta el atajo y el copiado se produce de forma limpia.
+        </div>
+      </div>
+
+      <!-- TEST 4: ENVENENAMIENTO DE PORTAPAPELES -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">4. Envenenador de Portapapeles</span>
+          <span class="tag tag-warning">DataTransfer Poisoning</span>
+        </div>
+        <div class="test-box" id="test4">
+          <b>Pregunta 4:</b> Calcule la complejidad temporal y espacial amortizada de la operación de inserción en un árbol B+ de orden m.
+        </div>
+        <div class="hint">
+          <b>Trampa:</b> La página intenta inyectar <i>"⚠️ COPIA PROHIBIDA EN ESTE EXAMEN"</i> en <code>event.clipboardData</code> al copiar.<br>
+          <span style="color:#38bdf8;">Con extensión:</span> Se copia el texto genuino de la pregunta.
+        </div>
+      </div>
+
+      <!-- TEST 5: CLIC DERECHO BLOQUEADO -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">5. Menú Contextual (Clic Derecho)</span>
+          <span class="tag tag-danger">contextmenu</span>
+        </div>
+        <div class="test-box" id="test5" oncontextmenu="return false;">
+          <b>Pregunta 5:</b> Haz clic derecho sobre este recuadro para abrir el menú contextual del navegador.
+        </div>
+        <div class="hint">
+          <b>Prueba:</b> Clic derecho con el mouse.<br>
+          <span style="color:#38bdf8;">Con extensión:</span> El menú contextual se despliega sin que aparezca la alerta roja de bloqueo.
+        </div>
+      </div>
+
+      <!-- TEST 6: CAPA OVERLAY TRANSPARENTE -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">6. Capa Trampa Invisible (Pointer Events)</span>
+          <span class="tag tag-warning">Overlay trap</span>
+        </div>
+        <div class="test-box" id="test6" style="position: relative; pointer-events: none;">
+          <b>Pregunta 6:</b> ¿Cómo previene un balanceador de carga de capa 4 los ataques SYN Flood sin almacenar estado de sesión en memoria?
+        </div>
+        <div class="hint">
+          <b>Mecanismo:</b> El contenedor tiene <code>pointer-events: none</code> para desviar el ratón.<br>
+          <span style="color:#38bdf8;">Con extensión:</span> El CSS fuerza <code>pointer-events: auto !important</code> permitiendo la selección.
+        </div>
+      </div>
+
+      <!-- TEST 7: BLOQUEO ACTIVO DE CAPTURAS POR ATAJOS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">7. Interceptor de Capturas (Atajos & Blackout)</span>
+          <span class="tag tag-danger">PrintScreen / Alt+S</span>
+        </div>
+        <div class="test-box" id="test7">
+          <b>Pregunta 7:</b> Describe el teorema CAP y por qué un sistema distribuido particionado solo puede garantizar CP o AP, pero no CA.
+        </div>
+        <div class="hint">
+          <b>Trampa activa:</b> Al presionar <span class="code-pill">PrintScreen</span>, <span class="code-pill">Alt + S</span> o <span class="code-pill">Win+Shift+S</span>, la página intercepta la tecla, vacía/envenena el portapapeles y despliega un <b>choque de pantalla negra (Blackout Guard)</b> durante 1.8s para cegar la captura.<br>
+          <span style="color:#38bdf8;">Con extensión/asistente:</span> Si la extensión captura a nivel de API de navegador antes del DOM o a nivel de sistema, evalúa si la foto sale limpia o si la página logró capturarse en negro.
+        </div>
+        <div style="margin-top: 10px;">
+          <button class="btn" type="button" onclick="triggerSimulatedCapture()">Simular choque de captura</button>
+        </div>
+      </div>
+
+      <!-- TEST 8: VELO POR PÉRDIDA DE FOCO (ANTI-FLAMESHOT / RECORTE) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">8. Velo Anti-Recorte (Pérdida de Foco)</span>
+          <span class="tag tag-warning">Anti-Snipping Blur</span>
+        </div>
+        <div class="test-box" id="test8">
+          <b>Pregunta 8:</b> ¿Qué algoritmo de consenso utiliza CockroachDB para la replicación de rangos a nivel de almacenamiento transaccional?
+        </div>
+        <div class="hint">
+          <b>Mecanismo:</b> Las herramientas externas (Flameshot, Recortes de Windows/Linux) hacen que el navegador pierda el foco (<code>blur</code>). La página detecta esto y desenfoca/oculta de inmediato la pantalla.<br>
+          <label style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; cursor:pointer; color: #f1f5f9; font-weight:600;">
+            <input type="checkbox" id="toggleBlurShield" checked style="width:16px; height:16px; accent-color: var(--accent);">
+            Censurar contenido al perder foco (Activo)
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VERIFICADOR DEL PORTAPAPELES -->
+    <div class="clipboard-tester">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; font-size:16px;">📋 Verificador del Portapapeles</h3>
+        <span class="hint">Presiona <b>Ctrl + V</b> en este campo para comprobar qué texto se copió realmente:</span>
+      </div>
+      <textarea id="pasteZone" placeholder="Pega aquí el texto copiado (Ctrl + V)..."></textarea>
+      <div id="pasteAnalysis" style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">
+        Esperando pegado...
+      </div>
+    </div>
+
+    <!-- TERMINAL DE TELEMETRÍA EN VIVO -->
+    <div class="terminal-card">
+      <div class="terminal-header">
+        <span>⚡ Registro de Actividad y Trampas Detectadas</span>
+        <button class="btn" onclick="clearLogs()">Limpiar Consola</button>
+      </div>
+      <div class="terminal-logs" id="terminalLogs">
+        <div class="log-line">
+          <span class="log-time">[00:00:00]</span>
+          <span class="log-tag info">[INFO]</span>
+          <span class="log-msg">Laboratorio listo. Selecciona texto o presiona Ctrl+C en cualquier tarjeta para probar.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let neutralizedCount = 0;
+    let screenshotBlockedCount = 0;
+    let blackoutTimer = null;
+
+    function logEvent(type, tag, msg) {
+      const logs = document.getElementById('terminalLogs');
+      const time = new Date().toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="log-tag ${tag}">[${type}]</span>
+        <span class="log-msg">${msg}</span>
+      `;
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function showPopup(msg) {
+      const p = document.getElementById('alertPopup');
+      p.textContent = msg;
+      p.style.display = 'block';
+      setTimeout(() => { p.style.display = 'none'; }, 2500);
+    }
+
+    // DISPARADOR DE CHOQUE DE PANTALLA NEGRA (BLACKOUT SHIELD)
+    function triggerBlackout(reason) {
+      screenshotBlockedCount++;
+      const counterEl = document.getElementById('countScreenshots');
+      if (counterEl) counterEl.textContent = `${screenshotBlockedCount} bloqueadas`;
+
+      logEvent('CAPTURA-BLOQUEADA', 'blocked', `🚨 INTENTO DE CAPTURA DETECTADO: ${reason}. Activando choque de pantalla negra y borrado de portapapeles.`);
+      showPopup(`🚨 Captura interceptada: ${reason}`);
+
+      // Envenenar/borrar portapapeles del sistema para arruinar capturas que vayan a portapapeles
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText('⚠️ CAPTURA BLOQUEADA: No se permite capturar este examen.').catch(() => {});
+        }
+      } catch (err) {}
+
+      const shield = document.getElementById('blackoutShield');
+      const reasonEl = document.getElementById('blackoutReason');
+      if (reasonEl) reasonEl.textContent = `Detección: ${reason}`;
+      if (shield) {
+        shield.classList.add('active');
+        clearTimeout(blackoutTimer);
+        blackoutTimer = setTimeout(() => {
+          shield.classList.remove('active');
+        }, 1800);
+      }
+    }
+
+    function triggerSimulatedCapture() {
+      triggerBlackout('Simulación manual de captura');
+    }
+
+    // IDENTIFICADOR DE ATAJOS DE CAPTURA
+    function detectCaptureShortcut(e) {
+      const key = (e.key || '').toLowerCase();
+      // 1. Tecla PrintScreen física
+      if (key === 'printscreen' || key === 'snapshot' || e.keyCode === 44 || e.code === 'PrintScreen') {
+        return 'Tecla PrintScreen / Impr Pant';
+      }
+      // 2. Alt + S (Atajo del Asistente de Estudio)
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (key === 's' || e.code === 'KeyS')) {
+        return 'Atajo Alt + S (Asistente de Estudio)';
+      }
+      // 3. Atajos de recorte OS / Navegador (Win+Shift+S / Ctrl+Shift+S)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (key === 's' || e.code === 'KeyS')) {
+        return 'Atajo de Recorte (Shift + S)';
+      }
+      // 4. Atajo de impresión / Guardar PDF (Ctrl + P)
+      if ((e.ctrlKey || e.metaKey) && (key === 'p' || e.code === 'KeyP')) {
+        return 'Atajo de Impresión (Ctrl + P)';
+      }
+      // 5. Atajos de captura macOS
+      if (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(key)) {
+        return 'Atajo de Captura macOS (Cmd+Shift+3/4/5)';
+      }
+      return null;
+    }
+
+    // INTERCEPTACIÓN AGRESIVA EN CAPTURE PHASE DE TECLADO
+    document.addEventListener('keydown', function(e) {
+      const captureReason = detectCaptureShortcut(e);
+      if (captureReason) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.returnValue = false;
+        triggerBlackout(captureReason + ' [keydown]');
+        return false;
+      }
+
+      // Interceptación de Ctrl+C existente
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        logEvent('KEYDOWN', 'blocked', 'La página intentó interceptar Ctrl+C.');
+        showPopup('⚠️ Intento de bloqueo de Ctrl+C capturado por la página.');
+        e.preventDefault();
+        e.returnValue = false;
+      }
+    }, true);
+
+    document.addEventListener('keyup', function(e) {
+      const captureReason = detectCaptureShortcut(e);
+      if (captureReason) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.returnValue = false;
+        triggerBlackout(captureReason + ' [keyup]');
+        return false;
+      }
+    }, true);
+
+    // CONTROL DE IMPRESIÓN DEL NAVEGADOR
+    window.addEventListener('beforeprint', function(e) {
+      triggerBlackout('Intento de Impresión / Guardado PDF');
+    });
+
+    // MANEJADOR DE TRAMPAS INLINE EN BODY
+    function handleBodyTrap(e, name) {
+      logEvent('TRAMPA-BODY', 'blocked', `La página detectó ${name} en el body.`);
+      showPopup(`⚠️ Trampa activada: ${name} en body.`);
+      e.preventDefault();
+      return false;
+    }
+
+    // 1. TRAMPA EN DOCUMENT: SELECTSTART
+    document.addEventListener('selectstart', function(e) {
+      logEvent('SELECTSTART', 'blocked', 'La página intentó cancelar la selección (preventDefault).');
+      e.preventDefault();
+      e.returnValue = false;
+    });
+
+    // 2. TRAMPA DE VACIADO: SELECTIONCHANGE (WIPE)
+    document.addEventListener('selectionchange', function() {
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim().length > 0) {
+        logEvent('SELECTIONCHANGE', 'blocked', `Intento de vaciado malicioso sobre: "${sel.toString().substring(0, 30)}..."`);
+        try {
+          sel.removeAllRanges();
+          if (sel.empty) sel.empty();
+        } catch(err) {}
+      }
+    });
+
+    // 3. TRAMPA DE ENVENENAMIENTO DE PORTAPAPELES
+    document.addEventListener('copy', function(e) {
+      logEvent('COPY-EVENT', 'blocked', 'La página intentó envenenar el portapapeles con texto falso.');
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', '⚠️ CONTENIDO BLOQUEADO POR EL PROFESOR (Copia Denegada)');
+      }
+      e.preventDefault();
+      e.returnValue = false;
+    });
+
+    // 4. TRAMPA DE CLIC DERECHO
+    document.addEventListener('contextmenu', function(e) {
+      logEvent('CONTEXTMENU', 'blocked', 'La página intentó bloquear el clic derecho.');
+      showPopup('⚠️ Clic derecho deshabilitado por el examen.');
+      e.preventDefault();
+      e.returnValue = false;
+    });
+
+    // VELO ANTI-RECORTES POR PÉRDIDA DE FOCO (BLUR)
+    function applyBlurVeil() {
+      const toggle = document.getElementById('toggleBlurShield');
+      if (toggle && toggle.checked) {
+        document.body.classList.add('blur-shield-active');
+        logEvent('VELO-FOCO', 'blocked', 'Foco perdido: Pantalla censurada y desenfocada para anular recortes externos.');
+      }
+    }
+
+    function removeBlurVeil() {
+      if (document.body.classList.contains('blur-shield-active')) {
+        document.body.classList.remove('blur-shield-active');
+        logEvent('VELO-FOCO', 'info', 'Foco recuperado: Pantalla restaurada.');
+      }
+    }
+
+    // MONITOR EN VIVO DE FOCO Y VISIBILIDAD (MOODLE AUDIT)
+    function updateFocusTelemetry() {
+      const hasFocus = document.hasFocus();
+      const visState = document.visibilityState;
+      const isHidden = document.hidden;
+
+      const txtFocus = document.getElementById('textFocus');
+      const dotFocus = document.getElementById('dotFocus');
+      const txtVis = document.getElementById('textVisibility');
+      const dotVis = document.getElementById('dotVisibility');
+
+      txtFocus.textContent = `document.hasFocus() = ${hasFocus}`;
+      txtVis.textContent = `visibilityState = ${visState}`;
+
+      if (hasFocus) {
+        dotFocus.className = 'status-dot';
+      } else {
+        dotFocus.className = 'status-dot red';
+      }
+
+      if (visState === 'visible' && !isHidden) {
+        dotVis.className = 'status-dot';
+      } else {
+        dotVis.className = 'status-dot red';
+      }
+    }
+
+    setInterval(updateFocusTelemetry, 500);
+    window.addEventListener('focus', () => {
+      removeBlurVeil();
+      updateFocusTelemetry();
+    });
+    window.addEventListener('blur', () => {
+      applyBlurVeil();
+      logEvent('AUDITORÍA', 'info', `Evento 'blur' recibido (hasFocus=${document.hasFocus()})`);
+      updateFocusTelemetry();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        applyBlurVeil();
+      } else {
+        removeBlurVeil();
+      }
+      logEvent('AUDITORÍA', 'info', `visibilitychange disparado (hidden=${document.hidden}, state=${document.visibilityState})`);
+      updateFocusTelemetry();
+    });
+
+    // ANÁLISIS DE LO PEGADO EN EL TEXTAREA
+    document.getElementById('pasteZone').addEventListener('paste', function(e) {
+      setTimeout(() => {
+        const text = this.value;
+        const analysis = document.getElementById('pasteAnalysis');
+        if (!text.trim()) {
+          analysis.innerHTML = '<span style="color: var(--danger);">Portapapeles vacío.</span>';
+        } else if (text.includes('CONTENIDO BLOQUEADO POR EL PROFESOR') || text.includes('CAPTURA BLOQUEADA')) {
+          analysis.innerHTML = '<span style="color: var(--danger); font-weight:700;">❌ FALLO: El portapapeles fue envenenado con la advertencia del examen.</span>';
+        } else if (text.includes('Pregunta')) {
+          neutralizedCount++;
+          document.getElementById('valNeutralized').textContent = `${neutralizedCount} intentos con éxito`;
+          analysis.innerHTML = `<span style="color: var(--success); font-weight:700;">✅ ÉXITO TOTAL: Se copió el texto original de la pregunta (${text.length} caracteres) sin alteraciones ni advertencias.</span>`;
+          logEvent('PEGADO', 'neutralized', `Texto legítimo verificado: "${text.substring(0, 40)}..."`);
+        } else {
+          analysis.innerHTML = `<span style="color: var(--accent);">Texto pegado (${text.length} caracteres).</span>`;
+        }
+      }, 50);
+    });
+
+    function clearLogs() {
+      document.getElementById('terminalLogs').innerHTML = `
+        <div class="log-line">
+          <span class="log-time">[${new Date().toTimeString().split(' ')[0]}]</span>
+          <span class="log-tag info">[INFO]</span>
+          <span class="log-msg">Consola reiniciada.</span>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

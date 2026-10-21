@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -eu
+
+script_dir="$(dirname "$(readlink -f "$0")")"
+if [ -f "$script_dir/../test-pages/index.html" ]; then
+  page_dir="$script_dir/../test-pages"
+elif [ -f "$script_dir/../share/asistente-estudio/prueba-navegador/index.html" ]; then
+  page_dir="$script_dir/../share/asistente-estudio/prueba-navegador"
+elif [ -f "$HOME/.local/share/asistente-estudio/prueba-navegador/index.html" ]; then
+  page_dir="$HOME/.local/share/asistente-estudio/prueba-navegador"
+else
+  echo "No se encuentra la página de prueba index.html" >&2
+  exit 1
+fi
+
+echo "Abre http://127.0.0.1:8765/ en Brave."
+echo "Mantén esta terminal abierta durante la prueba. Ctrl+C detiene el servidor."
+exec python3 -m http.server 8765 --bind 127.0.0.1 --directory "$page_dir"

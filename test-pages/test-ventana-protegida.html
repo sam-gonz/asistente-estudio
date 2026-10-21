@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prueba local · Ventana protegida</title>
+  <style>
+    :root { color-scheme: light; --ink: #203344; --navy: #183a59; --paper: #f6f8fa; --line: #ced9e2; --blue: #e8f3f8; --warning: #a24e00; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 system-ui, sans-serif; }
+    header { background: var(--navy); color: white; padding: 16px 24px; }
+    header div, main { max-width: 1020px; margin: auto; }
+    header strong { font-weight: 650; }
+    header span { margin-left: 12px; font-size: 14px; opacity: .8; }
+    main { padding: 32px 24px 48px; }
+    h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 36px); line-height: 1.2; letter-spacing: -.03em; }
+    h2 { margin: 0 0 12px; font-size: 20px; }
+    p { margin: 8px 0 16px; }
+    .intro { max-width: 760px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0; }
+    button { border: 1px solid var(--navy); border-radius: 5px; padding: 10px 15px; font: inherit; font-weight: 600; cursor: pointer; background: white; color: var(--navy); }
+    button.primary { color: white; background: var(--navy); }
+    button:hover { box-shadow: 0 2px 0 var(--line); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid #147da4; outline-offset: 3px; }
+    .switch { display: flex; align-items: center; gap: 8px; }
+    input[type=checkbox], input[type=radio] { width: 18px; height: 18px; accent-color: var(--navy); }
+    .state { font: 13px/1.4 ui-monospace, monospace; border: 1px solid var(--line); padding: 7px 10px; background: white; }
+    .quiz { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 24px 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: white; }
+    .quiz aside { padding: 24px 20px; background: var(--blue); border-right: 1px solid var(--line); }
+    .quiz aside strong { display: block; font-size: 18px; }
+    .quiz aside small { display: block; margin-top: 8px; }
+    .que { padding: 24px; }
+    body[data-blocks="on"] .que .qtext { user-select: none !important; -webkit-user-select: none !important; }
+    .qtext { font: 20px/1.65 Georgia, serif; }
+    .answer label { display: flex; align-items: center; gap: 10px; margin: 10px 0; cursor: pointer; }
+    .note { color: #516575; font-size: 14px; }
+    .panel { padding: 22px 24px; margin-top: 20px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+    textarea { display: block; width: 100%; min-height: 105px; resize: vertical; border: 1px solid var(--line); border-radius: 4px; padding: 12px; font: inherit; color: var(--ink); background: white; }
+    #paste-result { min-height: 24px; margin-bottom: 0; }
+    #notice { padding: 12px 16px; background: #fff2e5; color: var(--warning); border-left: 4px solid var(--warning); }
+    #notice[hidden] { display: none; }
+    #focus-notice { padding: 12px 16px; border-left: 4px solid var(--warning); background: #fff2e5; }
+    #capture-notice { padding: 12px 16px; border-left: 4px solid #dc2626; background: #fee2e2; color: #991b1b; }
+    body[data-content-hidden="on"] .quiz, body[data-content-hidden="on"] #frame-area { visibility: hidden; }
+    body[data-capture-blocked="on"] .quiz, body[data-capture-blocked="on"] #frame-area { visibility: hidden !important; }
+    #events { margin: 0; max-height: 220px; overflow: auto; padding-left: 20px; font: 13px/1.8 ui-monospace, monospace; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    .panel-header h2 { margin: 0; }
+    #frame-area { margin-top: 16px; }
+    iframe { width: 100%; height: 220px; border: 1px solid var(--line); background: white; }
+    #diagnostics { white-space: pre-wrap; font: 14px/1.7 ui-monospace, monospace; }
+    footer { margin-top: 24px; font-size: 14px; color: #516575; }
+    kbd { font: 13px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 3px; padding: 2px 5px; background: white; }
+    @media print { body[data-seb-simulation="on"][data-blocks="on"] .quiz, body[data-seb-simulation="on"][data-blocks="on"] #frame-area { visibility: hidden; } }
+    @media (max-width: 620px) { main { padding: 24px 16px; } header span { display: block; margin: 4px 0 0; } .quiz { grid-template-columns: 1fr; } .quiz aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; } .que, .panel { padding: 20px; } .panel-header { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body data-blocks="on" data-seb-simulation="on" data-content-hidden="off" data-capture-blocked="off">
+  <header><div><strong>Prueba local del navegador</strong><span>Simulación de restricciones de una ventana de Moodle</span></div></header>
+  <main>
+    <h1>Capturar sin modificar la página.</h1>
+    <p class="intro">Abre la ventana de prueba y usa <kbd>Alt+S</kbd> con la extensión 1.8. El modo de simulación añade restricciones de página para comprobar qué ocurre con el atajo. No ejecuta Safe Exam Browser ni bloquea capturas desde el sistema.</p>
+    <div class="controls">
+      <button class="primary" id="open-popup" type="button">Abrir ventana protegida de prueba</button>
+      <label class="switch"><input id="blocks" type="checkbox" checked> Activar bloqueos de la página</label>
+      <span class="state" id="window-mode">Ventana normal</span>
+    </div>
+    <section class="panel" aria-labelledby="seb-title">
+      <h2 id="seb-title">Simulación SEB en Brave</h2>
+      <div class="controls">
+        <label class="switch"><input id="seb-simulation" type="checkbox" checked> Activar simulación</label>
+        <button id="fullscreen" type="button">Entrar en pantalla completa</button>
+        <span class="state" id="fullscreen-state">Pantalla completa desactivada</span>
+      </div>
+      <p class="note">Con ambos interruptores activados, la página intenta cancelar Alt+S, Impr Pant, copiar, cortar, pegar y el menú contextual. Oculta el contenido al perder el foco y al imprimir. Puedes salir de pantalla completa con Esc.</p>
+      <p id="shortcut-state" role="status">Alt+S: todavía no se recibió ningún evento en esta página.</p>
+      <p class="note">Los atajos de extensiones los gestiona Brave y pueden no llegar a la página. Un registro vacío no confirma una captura ni demuestra que la extensión sea indetectable. Comprueba la imagen recibida por el asistente.</p>
+    </section>
+    <p id="notice" role="status" aria-live="polite" hidden></p>
+    <p id="focus-notice" role="status" hidden>Contenido oculto por la simulación: vuelve a esta ventana para mostrarlo.</p>
+    <p id="capture-notice" role="status" hidden>Intento de captura interceptado por la página: contenido oculto temporalmente para invalidar la imagen.</p>
+    <section class="quiz" aria-label="Contenido de prueba">
+      <aside><strong>Texto de prueba</strong><small>Sin calificación</small><small id="block-state">Bloqueos activados</small></aside>
+      <div class="que">
+        <p class="qtext" id="sample-text" unselectable="on">Este texto sirve para comprobar la selección y el copiado en una ventana emergente. Si puedes copiarlo y pegarlo debajo sin recibir un aviso de bloqueo, la selección funciona en esta prueba.</p>
+        <div class="answer" role="group" aria-label="Control de respuestas">
+          <p class="note">Estos controles deben seguir funcionando:</p>
+          <label><input type="radio" name="response" value="a"> Respuesta de prueba A</label>
+          <label><input type="radio" name="response" value="b"> Respuesta de prueba B</label>
+          <button id="save-answer" type="button">Comprobar respuesta marcada</button>
+          <p id="answer-result" class="note" aria-live="polite">Todavía no has comprobado una respuesta.</p>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2><label for="paste-zone">Comprueba lo que se copió</label></h2>
+      <textarea id="paste-zone" placeholder="Pega aquí el texto con Ctrl+V."></textarea>
+      <p id="paste-result" class="note" aria-live="polite">La comparación revisa el texto pegado; no lee el portapapeles.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><h2>Prueba dentro de un marco</h2><button id="open-frame" type="button">Añadir marco de prueba</button></div>
+      <p class="note">Permite probar también el texto que una plataforma muestra dentro de un iframe.</p>
+      <div id="frame-area"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><h2>Registro de la página</h2><button id="clear-events" type="button">Limpiar registro</button></div>
+      <ul id="events" aria-live="polite"><li>Prueba preparada. Simulación SEB activada; restricciones limitadas a esta página.</li></ul>
+      <p class="note">Que no aparezca un evento aquí no demuestra invisibilidad. El navegador o el sistema pueden no entregar la tecla Impr Pant a la página.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><h2>¿Hay cambios observables?</h2><button id="inspect" type="button">Comprobar funciones del navegador</button></div>
+      <p class="note">Comprueba diferencias en algunas funciones. No identifica de forma concluyente una extensión ni reproduce la detección de Moodle UTP.</p>
+      <div id="diagnostics" role="status" aria-live="polite">Pulsa el botón para ejecutar la comprobación.</div>
+    </section>
+    <footer>Esta simulación no está conectada a Moodle UTP ni reproduce el cliente real de Safe Exam Browser o restricciones del sistema. La página no envía información a servidores. La extensión intenta capturar con <kbd>Alt+S</kbd> y enviar la imagen al asistente local, que debe estar activo. La extensión 1.8 no modifica la selección, el portapapeles ni el foco de la página.</footer>
+  </main>
+  <script>
+    const byId = id => document.getElementById(id);
+    let blocksEnabled = true;
+    let sebSimulation = true;
+    let shortcutEvents = 0;
+    function simulationActive() { return blocksEnabled && sebSimulation; }
+    const normalize = text => text.replace(/\s+/g, ' ').trim();
+
+    function log(message) {
+      const row = document.createElement('li');
+      row.textContent = `${new Date().toLocaleTimeString()} · ${message}`;
+      byId('events').prepend(row);
+      while (byId('events').children.length > 30) byId('events').lastElementChild.remove();
+    }
+
+    function block(event, action) {
+      if (!blocksEnabled) return;
+      event.preventDefault();
+      event.returnValue = false;
+      byId('notice').textContent = `Simulación: esa funcionalidad está deshabilitada (${action}).`;
+      byId('notice').hidden = false;
+      log(`La página intentó bloquear: ${action}.`);
+    }
+
+    function updateFocus() {
+      const hidden = simulationActive() && (document.hidden || !document.hasFocus());
+      const changed = document.body.dataset.contentHidden !== (hidden ? 'on' : 'off');
+      document.body.dataset.contentHidden = hidden ? 'on' : 'off';
+      byId('focus-notice').hidden = !hidden;
+      if (changed) log(hidden ? 'Contenido oculto: la ventana perdió el foco.' : 'Contenido visible de nuevo.');
+    }
+
+    function updateFrame() {
+      const frame = byId('frame-area').querySelector('iframe');
+      if (!frame || !frame.contentDocument || !frame.contentDocument.body) return;
+      frame.contentDocument.body.dataset.blocks = blocksEnabled ? 'on' : 'off';
+    }
+
+    function triggerCaptureShield(action) {
+      if (!simulationActive()) return;
+      document.body.dataset.captureBlocked = 'on';
+      const notice = byId('capture-notice');
+      if (notice) {
+        notice.textContent = `Intento de captura interceptado (${action}): contenido oculto temporalmente para invalidar la imagen.`;
+        notice.hidden = false;
+      }
+      setTimeout(() => {
+        document.body.dataset.captureBlocked = 'off';
+        if (notice) notice.hidden = true;
+      }, 1800);
+    }
+
+    // Solo intenta cancelar eventos que el navegador entrega al documento.
+    function handleKey(event, origin = 'página') {
+      const key = (event.key || '').toLowerCase();
+      if (event.altKey && !event.ctrlKey && !event.metaKey && (key === 's' || event.code === 'KeyS')) {
+        shortcutEvents += 1;
+        if (simulationActive()) {
+          block(event, `Alt+S en ${origin}`);
+          triggerCaptureShield(`Alt+S en ${origin}`);
+        }
+        byId('shortcut-state').textContent = `Alt+S: ${shortcutEvents} eventos recibidos; último ${event.type} en ${origin}. ${simulationActive() ? 'La página intentó cancelarlo.' : 'Sin bloqueo del atajo.'}`;
+        log(`Alt+S recibido en ${origin} (${event.type}).`);
+      } else if (event.key === 'PrintScreen' || event.code === 'PrintScreen') {
+        if (blocksEnabled) {
+          block(event, `Impr Pant en ${origin}`);
+          triggerCaptureShield(`Impr Pant en ${origin}`);
+        }
+        else log(`La página recibió ${event.type} de Impr Pant, sin bloquearlo.`);
+      } else if ((event.ctrlKey || event.metaKey) && key === 'c' && hasSampleSelection()) {
+        block(event, 'Ctrl+C');
+      }
+    }
+
+    window.addEventListener('blur', () => setTimeout(updateFocus, 0));
+    window.addEventListener('focus', updateFocus);
+    window.addEventListener('load', updateFocus);
+    document.addEventListener('visibilitychange', updateFocus);
+    window.addEventListener('beforeprint', () => {
+      if (simulationActive()) log('Impresión: el contenido de prueba se oculta en la hoja.');
+    });
+    byId('seb-simulation').addEventListener('change', event => {
+      sebSimulation = event.target.checked;
+      document.body.dataset.sebSimulation = sebSimulation ? 'on' : 'off';
+      byId('notice').hidden = true;
+      updateFocus();
+      log(sebSimulation ? 'Simulación SEB activada.' : 'Simulación SEB desactivada; quedan los bloqueos básicos.');
+    });
+    byId('fullscreen').addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+      } catch (error) {
+        log(`Brave no permitió cambiar la pantalla completa: ${error.message}`);
+        byId('notice').textContent = 'No se pudo cambiar la pantalla completa. Puedes seguir probando en esta ventana.';
+        byId('notice').hidden = false;
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      const active = !!document.fullscreenElement;
+      byId('fullscreen').textContent = active ? 'Salir de pantalla completa' : 'Entrar en pantalla completa';
+      byId('fullscreen-state').textContent = active ? 'Pantalla completa activada' : 'Pantalla completa desactivada';
+      log(active ? 'Pantalla completa activada.' : 'Salida de pantalla completa.');
+    });
+
+    function targetsSample(event) {
+      return event.target instanceof Element && !!event.target.closest('.qtext');
+    }
+
+    function hasSampleSelection() {
+      const selection = window.getSelection();
+      const node = selection && selection.anchorNode;
+      const element = node && (node.nodeType === 1 ? node : node.parentElement);
+      return !!(element && element.closest('.qtext') && selection.toString());
+    }
+
+    // Modelos simples de los bloqueos de CSS, ratón y eventos de copia.
+    document.addEventListener('mousedown', event => {
+      if (targetsSample(event) && event.button === 0) block(event, 'seleccionar con el ratón');
+    }, true);
+    document.addEventListener('selectstart', event => {
+      if (targetsSample(event)) block(event, 'seleccionar texto');
+    }, true);
+    document.addEventListener('contextmenu', event => {
+      if (simulationActive() || targetsSample(event)) block(event, 'clic derecho');
+    }, true);
+    document.addEventListener('copy', event => {
+      if (simulationActive() || hasSampleSelection()) block(event, 'copiar texto');
+    }, true);
+    ['cut', 'paste'].forEach(type => document.addEventListener(type, event => {
+      if (simulationActive()) block(event, type === 'cut' ? 'cortar texto' : 'pegar texto');
+    }, true));
+    document.addEventListener('selectionchange', () => {
+      if (blocksEnabled && hasSampleSelection()) window.getSelection().removeAllRanges();
+    });
+    ['keydown', 'keyup'].forEach(type => {
+      document.addEventListener(type, event => handleKey(event), true);
+    });
+
+    byId('blocks').addEventListener('change', event => {
+      blocksEnabled = event.target.checked;
+      document.body.dataset.blocks = blocksEnabled ? 'on' : 'off';
+      byId('block-state').textContent = blocksEnabled ? 'Bloqueos activados' : 'Bloqueos desactivados';
+      if (blocksEnabled) byId('sample-text').setAttribute('unselectable', 'on');
+      else byId('sample-text').removeAttribute('unselectable');
+      byId('notice').hidden = true;
+      updateFocus();
+      updateFrame();
+      log(blocksEnabled ? 'Bloqueos activados.' : 'Bloqueos desactivados.');
+    });
+
+    byId('open-popup').addEventListener('click', () => {
+      const url = new URL(location.href);
+      url.hash = 'popup';
+      const popup = window.open(url.href, 'moodleTestPopup', 'popup=yes,width=1080,height=850,menubar=no,toolbar=no,scrollbars=yes,resizable=yes');
+      if (popup) log('Ventana emergente abierta. Realiza las pruebas allí.');
+      else {
+        byId('notice').textContent = 'El navegador bloqueó la ventana emergente. Permite ventanas emergentes para esta página local y vuelve a intentarlo.';
+        byId('notice').hidden = false;
+      }
+    });
+    if (location.hash === '#popup') {
+      byId('window-mode').textContent = 'Ventana emergente de prueba';
+      byId('open-popup').hidden = true;
+    }
+
+    byId('save-answer').addEventListener('click', () => {
+      const selected = document.querySelector('input[name="response"]:checked');
+      byId('answer-result').textContent = selected ? `Control funcionando: elegiste la respuesta ${selected.value.toUpperCase()}.` : 'Marca una respuesta para comprobar el control.';
+    });
+    // Compara solo el contenido introducido en este campo.
+    byId('paste-zone').addEventListener('input', event => {
+      const value = normalize(event.target.value);
+      byId('paste-result').textContent = !value ? 'Pega el texto de prueba aquí.' : value === normalize(byId('sample-text').textContent) ? 'Correcto: el texto completo se copió sin cambios.' : 'El texto pegado es parcial o diferente. Compara con el texto de prueba.';
+    });
+
+    byId('open-frame').addEventListener('click', () => {
+      if (byId('frame-area').children.length) return;
+      const frame = document.createElement('iframe');
+      frame.title = 'Texto con restricciones dentro de un marco';
+      frame.srcdoc = `<!doctype html><html lang="es"><meta charset="utf-8"><style>body{font:16px/1.6 system-ui;padding:16px;color:#203344}body[data-blocks="on"] .qtext{user-select:none!important;-webkit-user-select:none!important}button{padding:8px;font:inherit}</style><body data-blocks="on"><div class="que"><p class="qtext">Texto de prueba dentro del marco. Intenta seleccionarlo y copiarlo.</p><button type="button" onclick="this.textContent='El botón funciona'">Probar botón del marco</button></div><script>document.addEventListener('mousedown',e=>{if(e.button===0&&e.target.closest('.qtext'))parent.block(e,'selección en el marco')},true);document.addEventListener('selectstart',e=>{if(e.target.closest('.qtext'))parent.block(e,'selección en el marco')},true);['copy','cut','paste','contextmenu'].forEach(type=>document.addEventListener(type,e=>{if(parent.simulationActive()||type==='copy')parent.block(e,type+' en el marco')},true));['keydown','keyup'].forEach(type=>document.addEventListener(type,e=>parent.handleKey(e,'marco'),true));<\/script></body></html>`;
+      frame.addEventListener('load', updateFrame);
+      byId('frame-area').appendChild(frame);
+      log('Marco añadido. Comparte los interruptores y el registro de esta página.');
+    });
+    byId('clear-events').addEventListener('click', () => byId('events').replaceChildren());
+
+    byId('inspect').addEventListener('click', () => {
+      const nativeSource = fn => /\{\s*\[native code\]\s*\}/.test(Function.prototype.toString.call(fn));
+      const copy = new Event('copy', { cancelable: true });
+      copy.preventDefault();
+      const results = [
+        ['preventDefault conserva aspecto nativo', nativeSource(Event.prototype.preventDefault)],
+        ['hasFocus conserva aspecto nativo', nativeSource(Document.prototype.hasFocus)],
+        ['document.hidden usa la propiedad heredada', !Object.getOwnPropertyDescriptor(document, 'hidden')],
+        ['Un evento copy cancelable puede cancelarse', copy.defaultPrevented]
+      ];
+      const changed = results.filter(([, normal]) => !normal).length;
+      byId('diagnostics').textContent = results.map(([label, normal]) => `${normal ? 'SIN CAMBIO' : 'CAMBIO OBSERVABLE'} · ${label}`).join('\n') + `\n\n${changed ? 'Hay diferencias observables compatibles con cambios hechos por una extensión o un script.' : 'Esta comprobación no encontró cambios. Eso no demuestra que una herramienta sea indetectable.'}`;
+      log(`Comprobación ejecutada: ${changed} diferencias observables.`);
+    });
+  </script>
+</body>
+</html>
